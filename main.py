@@ -1,11 +1,10 @@
 # main.py
-
+from starlette.websockets import WebSocketDisconnect
 from fastapi import FastAPI, Depends, HTTPException, responses, WebSocket
 
 from fastapi.middleware.cors import CORSMiddleware
 
 import redis
-import json
 from moduls import ConnectionManager
 
 # --- FastAPI Application Setup ---
@@ -14,8 +13,8 @@ app = FastAPI()
 manager = ConnectionManager()
 # This allows frontend to communicate with backend
 origins = [
+    "http://localhost:8000",
     "http://localhost:5173",
-    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
@@ -35,12 +34,18 @@ async def root():
 
 @app.get("/api/boxes/")
 async def get_boxes():
-    # Connect to Redis
-    r = redis.Redis(decode_responses=True)
-    res = r.get('boxes')
-    r.close()
-    # return http response with `res` as raw bits
-    return responses.Response(content=res, media_type="application/octet-stream")
+    try:
+        # Connect to Redis
+        r = redis.Redis(decode_responses=False)
+        res = r.get('boxes')
+        r.close()
+        # return http response with res as string
+        print(f'Sending boxes: {res}, type: {type(res)}')
+        return responses.PlainTextResponse(res)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 @app.websocket('/ws')
 async def websocket_endpoint(websocket: WebSocket):
@@ -52,12 +57,14 @@ async def websocket_endpoint(websocket: WebSocket):
             print(data)
             await set_bit(offset, value)
             await manager.broadcast(offset, value)
+    except WebSocketDisconnect:
+        print("Client disconnected")
     finally:
         manager.disconnect(websocket)
 
 async def set_bit(offset: str, value: str):
     try:
-        r = redis.Redis(decode_responses=True)
+        r = redis.Redis()
         pipe = r.bitfield('boxes')
         pipe.set('u1', offset, int(value))
         _ = pipe.execute()
