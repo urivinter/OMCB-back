@@ -2,6 +2,8 @@
 
 This directory contains the Python-based backend for the OMCB project. It is built with FastAPI and uses Redis for data storage and WebSockets for real-time communication with the frontend.
 
+inspired by One Million CheckBoxes
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed on your local machine:

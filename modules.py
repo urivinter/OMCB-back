@@ -38,7 +38,7 @@ def encode(offset: int, value: int) -> bytes:
     data[2] = ((offset >> 16) & 0xff) | (value << 4)
     return bytes(data)
 
-async def set_bit(offset: int, value: int):
+def set_bit(offset: int, value: int):
     try:
         r = redis.Redis()
         pipe = r.bitfield('boxes')
@@ -48,10 +48,9 @@ async def set_bit(offset: int, value: int):
     except Exception as e:
         print(e)
 
-async def get_boxes():
+async def get_all():
     # Connect to Redis
     r = redis.Redis(decode_responses=False)
     res = r.get('boxes')
     r.close()
-
     return res

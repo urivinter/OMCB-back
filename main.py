@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, responses, WebSocket
 
 from fastapi.middleware.cors import CORSMiddleware
 
-from modules import ConnectionManager, decode, set_bit, get_boxes
+from modules import ConnectionManager, decode, set_bit, get_all
 
 # --- FastAPI Application Setup ---
 
@@ -32,12 +32,13 @@ async def root():
     return {"message": "Hello World"}
 
 @app.get("/api/boxes/")
-async def landing():
+async def get_boxes():
     try:
-        res = await get_boxes()
-        return responses.PlainTextResponse(res)
+        res = await get_all()
+        return responses.Response(res, media_type="application/octet-stream")
 
-    finally:
+    except Exception as e:
+        print(e)
         return HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.websocket('/ws')
@@ -47,7 +48,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_bytes()
             offset, value = decode(data)
-            await set_bit(offset, value)
+            set_bit(offset, value)
             await manager.broadcast(offset, value)
     except WebSocketDisconnect:
         pass
